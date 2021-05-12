@@ -1,31 +1,33 @@
 const functions = require('firebase-functions')
 const admin = require('firebase-admin')
 
+const app = require('express')()
+
 admin.initializeApp()
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
-exports.helloWorld = functions.https.onRequest((request, response) => {
-	functions.logger.info('Hello logs!', { structuredData: true })
-	response.send('Hello from leute!')
-})
 
-exports.getScreams = functions.https.onRequest((request, response) => {
+app.get('/screams', (request, response) => {
 	admin
 		.firestore()
 		.collection('Screams')
+		.orderBy('createdAt', 'desc')
 		.get()
 		.then(data => {
 			let screams = []
 			data.forEach(doc => {
-				screams.push(doc.data())
+				screams.push({
+					screamId: doc.id,
+					...doc.data(),
+				})
 			})
 			return response.json(screams)
 		})
 		.catch(err => console.log(err))
 })
 
-exports.createScream = functions.https.onRequest((request, response) => {
+app.post('/scream', (request, response) => {
 	const { body, userHandle } = request.body
 	const newScream = {
 		body,
@@ -46,3 +48,5 @@ exports.createScream = functions.https.onRequest((request, response) => {
 			response.status(500).json({ error: 'something went wrong' })
 		})
 })
+
+exports.api = functions.https.onRequest(app)
